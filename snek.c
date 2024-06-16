@@ -61,10 +61,15 @@ int main(int argc, char **argv){
 		if(kbhit())
 			changeSnekDirection(snekHead, kb = getch());
 		if(moveSnek(board, underBoard, snekHead, width, height)){
+			/*putch(snekHead->dir);
+			putch(snekHead->length);
+			putch('\n');
+			printBoard(underBoard, height);
+			exit(0);*/
 			ggnore(board, width, height);
 			system("cls");
 			printBoard(board, height);
-			printf("\n%d,%d\n", snekHead->x, snekHead->y);
+			//printf("\n%d,%d\n", snekHead->x, snekHead->y);
 			break;
 		}
 		placeFood(board, width, height);
@@ -94,12 +99,12 @@ void setxy(int argc, char **argv, int *x, int *y){
 }
 
 void initBoard(char ***board, int x, int y, char set){
-	*board = (char **) malloc(y * sizeof(char *));
+	*board = (char **) malloc((y+2) * sizeof(char *));
 	
 	int i, j;
-	for(j = 0; j < y; j++){
+	for(j = 0; j < y+2; j++){
 		(*board)[j] = (char *) malloc((x+1) * sizeof(char));
-		for(i = 0; i < x; i++)
+		for(i = 0; i < x+1; i++)
 			(*board)[j][i] = set;
 		(*board)[j][x] = '\0';
 	}
@@ -108,7 +113,7 @@ void initBoard(char ***board, int x, int y, char set){
 void printBoard(char **board, int y){
 	int j;
 	for(j = 0; j < y; j++){
-		_cputs(*board++);
+		_cputs(board++[1]);
 		putch('\n');
 	}
 }
@@ -129,15 +134,15 @@ int numGen(int num){
 
 void placeFood(char **board, int x, int y){
 	int i, j;
-	for(j = 0; j < y; j++)
-		for(i = 0; i < x; i++)
+	for(j = 1; j < y; j++)
+		for(i = 1; i < x; i++)
 			if(board[j][i] == 'o')
 				return;
 	
-	while(board[j = numGen(y)][i = numGen(x)] == '#')
+	while(board[(j = numGen(y-1))+1][(i = numGen(x-1))+1] == '#')
 		;
 	
-	board[j][i] = 'o';
+	board[j+1][i+1] = 'o';
 }
 
 void ggnore(char **board, int x, int y){
@@ -165,8 +170,8 @@ void initSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 void growSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 	(snek->length)++;
 	int i, j;
-	for(j = 0; j < y; j++)
-		for(i = 0; i < x; i++)
+	for(j = 0; j < y+1; j++)
+		for(i = 0; i < x+1; i++)
 			if(underBoard[j][i] > '0')
 				underBoard[j][i]++;
 }
@@ -174,8 +179,8 @@ void growSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 void shrinkSnek
 (char **board, char **underBoard, struct Snek *snek, int x, int y){
 	int i, j;
-	for(j = 0; j < y; j++)
-		for(i = 0; i < x; i++){
+	for(j = 0; j < y+1; j++)
+		for(i = 0; i < x+1; i++){
 			if(underBoard[j][i] > '0')
 				underBoard[j][i]--;
 			
@@ -185,12 +190,21 @@ void shrinkSnek
 }
 
 int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
+	if(	board[snek->y-1][snek->x] == '#' && snek->dir == 'U' ||
+		board[snek->y][snek->x-1] == '#' && snek->dir == 'L' ||
+		board[snek->y+1][snek->x] == '#' && snek->dir == 'D' ||
+		board[snek->y][snek->x+1] == '#' && snek->dir == 'R'
+	){
+		puts("Bite");
+		return -1;
+	}
+
 	shrinkSnek(board, underBoard, snek, x, y);
 
-	if(	board[LIM((snek->y)-1, 0)][snek->x] == 'o' && snek->dir == 'U' ||
-		board[snek->y][LIM((snek->x)-1, 0)] == 'o' && snek->dir == 'L' ||
-		board[LIM((snek->y)+1, y-1)][snek->x] == 'o' && snek->dir == 'D' ||
-		board[snek->y][LIM((snek->x)+1, x)] == 'o' && snek->dir == 'R'
+	if(	board[(snek->y)-1][snek->x] == 'o' && snek->dir == 'U' ||
+		board[snek->y][(snek->x)-1] == 'o' && snek->dir == 'L' ||
+		board[(snek->y)+1][snek->x] == 'o' && snek->dir == 'D' ||
+		board[snek->y][(snek->x)+1] == 'o' && snek->dir == 'R'
 	)
 		growSnek(board, underBoard, snek, x, y);
 	
@@ -221,18 +235,14 @@ int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 	)*/
 
 	if(	snek->y == 0 && snek->dir == 'U' ||
-		snek->x == 0 && snek->dir == 'L' ||
-		snek->y == y && snek->dir == 'D' ||
+		snek->x == -1 && snek->dir == 'L' ||
+		snek->y == y+1 && snek->dir == 'D' ||
 		snek->x == x && snek->dir == 'R'
-	)
+	){
+		puts("Out of bounds.");
 		return -1;
-	
-	if(	board[snek->y-1][snek->x] == '#' && snek->dir == 'U' ||
-		board[snek->y][snek->x-1] == '#' && snek->dir == 'L' ||
-		board[snek->y+1][snek->x] == '#' && snek->dir == 'D' ||
-		board[snek->y][snek->x-1] == '#' && snek->dir == 'R'
-	)
-		return -1;
+	}
+
 	return 0;
 }
 
