@@ -8,13 +8,13 @@
 #define DEFAULTSCREENHEIGHT 20
 #define REFRESHRATE 50
 
-#define ESC     0x1B
-#define UP      72
-#define DOWN    80
-#define LEFT    75
-#define RIGHT   77
+#define ESC 0x1B
+#define UP 72
+#define DOWN 80
+#define LEFT 75
+#define RIGHT 77
 
-struct Snek{
+struct Snek {
     int x;
     int y;
     int length;
@@ -27,10 +27,22 @@ void printBoard(char **board, int height);
 void placeFood(char **board, int width, int height);
 void ggnore(char **board, int width, int height);
 
-void initSnek
-(char **board, char **underBoard,struct Snek *snek, int width, int height);
-int moveSnek
-(char **board, char **underBoard, struct Snek *snek, int width, int height);
+void initSnek(
+    char **board,
+    char **underBoard,
+    struct Snek *snek,
+    int width,
+    int height
+);
+
+int moveSnek(
+    char **board,
+    char **underBoard,
+    struct Snek *snek,
+    int width,
+    int height
+);
+
 void changeSnekDirection(struct Snek *snek, int input);
 
 int main(int argc, char **argv){
@@ -44,12 +56,15 @@ int main(int argc, char **argv){
     initBoard(&underBoard, width, height, '$');
     initSnek(board, underBoard, snekHead, width, height);
 
-    do{
+    do {
         printBoard(board, height);
+
         if(kbhit())
             changeSnekDirection(snekHead, kb = getch());
+
         if(moveSnek(board, underBoard, snekHead, width, height))
             break;
+
         placeFood(board, width, height);
         Sleep(REFRESHRATE);
         system("cls");
@@ -60,10 +75,11 @@ int main(int argc, char **argv){
     printBoard(board, height);
 }
 
-void setxy(int argc, char **argv, int *x, int *y){
+void setxy(int argc, char **argv, int *x, int *y) {
     if(argc == 2)
         *y = atoi(*(argv+1));
-    if(argc > 2){
+
+    if(argc > 2) {
         *x = atoi(*(argv+1));
         *y = atoi(*(argv+2));
     }
@@ -75,43 +91,48 @@ void setxy(int argc, char **argv, int *x, int *y){
         *y = DEFAULTSCREENHEIGHT;
 }
 
-void initBoard(char ***board, int x, int y, char set){
+void initBoard(char ***board, int x, int y, char set) {
     *board = (char **) malloc((y+3) * sizeof(char *));
 
     int i, j;
     for(j = 0; j < y+3; j++){
         (*board)[j] = (char *) malloc((x+3) * sizeof(char));
+
         for(i = 0; i < x+1; i++)
             (*board)[j][i] = set;
+
         (*board)[j][x+1] = '\0';
         (*board)[j][x+2] = '\0';
     }
 }
 
-void printBoard(char **board, int y){
-    int j;
+void printBoard(char **board, int y) {
     board++;
+
+    int j;
     for(j = 0; j < y; j++){
         _cputs(board++[1]);
         putch('\n');
     }
 }
 
-int numGen(int num){
+int numGen(int num) {
     if (num <= 0)
         return num ? -1 : 0;
 
-    int random, limit = (RAND_MAX/num)*num;
+    int limit = (RAND_MAX/num)*num;
 
     if(limit == 0)
         return 0;
 
+    int random;
     while((random = rand()) > limit)
         ;
+
     return random % num;
 }
 
-void placeFood(char **board, int x, int y){
+void placeFood(char **board, int x, int y) {
     int i, j;
     for(j = 1; j < y; j++)
         for(i = 1; i < x; i++)
@@ -124,18 +145,26 @@ void placeFood(char **board, int x, int y){
     board[j+1][i+1] = 'o';
 }
 
-void ggnore(char **board, int x, int y){
+void ggnore(char **board, int x, int y) {
     if(x > 8){
-        int i;
         char *text = "GAME OVER";
+
         x>>=1;
         y>>=1;
+
+        int i;
         for(i = 0; *text != '\0'; i++)
             board[y][x+i-4] = *text++;
     }
 }
 
-void initSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
+void initSnek(
+    char **board,
+    char **underBoard,
+    struct Snek *snek,
+    int x,
+    int y
+) {
     snek->x = x>>1;
     snek->y = y>>1;
     snek->length = '1';
@@ -145,8 +174,15 @@ void initSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
     underBoard[snek->y][snek->x] = snek->length;
 }
 
-void growSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
+void growSnek(
+    char **board,
+    char **underBoard,
+    struct Snek *snek,
+    int x,
+    int y
+) {
     (snek->length)++;
+
     int i, j;
     for(j = 0; j < y+1; j++)
         for(i = 0; i < x+1; i++)
@@ -154,11 +190,16 @@ void growSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
                 underBoard[j][i]++;
 }
 
-void shrinkSnek
-(char **board, char **underBoard, struct Snek *snek, int x, int y){
+void shrinkSnek(
+    char **board,
+    char **underBoard,
+    struct Snek *snek,
+    int x,
+    int y
+) {
     int i, j;
     for(j = 0; j < y+2; j++)
-        for(i = 0; i < x+1; i++){
+        for(i = 0; i < x+1; i++) {
             if(underBoard[j][i] > '0')
                 underBoard[j][i]--;
 
@@ -167,20 +208,22 @@ void shrinkSnek
         }
 }
 
-int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
-    if( board[snek->y-1][snek->x] == '#' && snek->dir == 'U' ||
-        board[snek->y][snek->x-1] == '#' && snek->dir == 'L' ||
-        board[snek->y+1][snek->x] == '#' && snek->dir == 'D' ||
-        board[snek->y][snek->x+1] == '#' && snek->dir == 'R'
+int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y) {
+    if(
+           board[snek->y-1][snek->x] == '#' && snek->dir == 'U'
+        || board[snek->y][snek->x-1] == '#' && snek->dir == 'L'
+        || board[snek->y+1][snek->x] == '#' && snek->dir == 'D'
+        || board[snek->y][snek->x+1] == '#' && snek->dir == 'R'
     )
         return -1;
 
     shrinkSnek(board, underBoard, snek, x, y);
 
-    if( board[(snek->y)-1][snek->x] == 'o' && snek->dir == 'U' ||
-        board[snek->y][(snek->x)-1] == 'o' && snek->dir == 'L' ||
-        board[(snek->y)+1][snek->x] == 'o' && snek->dir == 'D' ||
-        board[snek->y][(snek->x)+1] == 'o' && snek->dir == 'R'
+    if(
+           board[(snek->y)-1][snek->x] == 'o' && snek->dir == 'U'
+        || board[snek->y][(snek->x)-1] == 'o' && snek->dir == 'L'
+        || board[(snek->y)+1][snek->x] == 'o' && snek->dir == 'D'
+        || board[snek->y][(snek->x)+1] == 'o' && snek->dir == 'R'
     )
         growSnek(board, underBoard, snek, x, y);
 
@@ -204,18 +247,19 @@ int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 
     underBoard[snek->y][snek->x] = snek->length;
 
-    if( snek->y == 1 && snek->dir == 'U' ||
-        snek->x == -1 && snek->dir == 'L' ||
-        snek->y == y+2 && snek->dir == 'D' ||
-        snek->x == x+1 && snek->dir == 'R'
+    if(
+           snek->y == 1 && snek->dir == 'U'
+        || snek->x == -1 && snek->dir == 'L'
+        || snek->y == y+2 && snek->dir == 'D'
+        || snek->x == x+1 && snek->dir == 'R'
     )
         return -1;
 
     return 0;
 }
 
-void changeSnekDirection(struct Snek *snek, int c){
-    switch(c){
+void changeSnekDirection(struct Snek *snek, int c) {
+    switch(c) {
         case 'W': case 'w':
             if(snek->dir == 'L' || snek->dir == 'R')
                 snek->dir = 'U';
@@ -223,7 +267,7 @@ void changeSnekDirection(struct Snek *snek, int c){
 
         case 'S': case 's':
             if(snek->dir == 'L' || snek->dir == 'R')
-            snek->dir = 'D';
+                snek->dir = 'D';
             break;
 
         case 'A': case 'a':
@@ -238,7 +282,7 @@ void changeSnekDirection(struct Snek *snek, int c){
     }
 
     if(c==224)
-        switch(c=getch()){
+        switch(c=getch()) {
             case UP:
                 if(snek->dir == 'L' || snek->dir == 'R')
                     snek->dir = 'U';
@@ -246,7 +290,7 @@ void changeSnekDirection(struct Snek *snek, int c){
 
             case DOWN:
                 if(snek->dir == 'L' || snek->dir == 'R')
-                snek->dir = 'D';
+                    snek->dir = 'D';
                 break;
 
             case LEFT:
