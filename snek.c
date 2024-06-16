@@ -1,30 +1,18 @@
 #include <stdlib.h>
-#include <stdio.h>
-
-#ifdef _WIN32
-	#include <conio.h>
-	#include <windows.h>
-	
-	#define SLEEP(x) Sleep(x)
-#else		// I can't do this.
-	#include <stdio.h>
-	#include <unistd.h>
-	
-	#define SLEEP(x) usleep(1000*x)
-#endif
+#include <conio.h>
+#include <windows.h>
 
 #define MAXSCREENWIDTH	80
 #define MAXSCREENHEIGHT	80
 #define DEFAULTSCREENWIDTH	20
 #define DEFAULTSCREENHEIGHT	20
+#define REFRESHRATE 50
 
-#define ESC	0x1B
+#define ESC		0x1B
 #define UP		72
 #define DOWN	80
 #define LEFT	75
 #define RIGHT	77
-
-#define LIM(x, y)	((y) <= 0 ? ((x) < 0 ? 0 : (x)) : ((x) > (y) ? (y) : (x)))
 
 struct Snek{
 	int x;
@@ -43,7 +31,7 @@ void initSnek
 (char **board, char **underBoard,struct Snek *snek, int width, int height);
 int moveSnek
 (char **board, char **underBoard, struct Snek *snek, int width, int height);
-void changeSnekDirection(struct Snek *snek, int character);
+void changeSnekDirection(struct Snek *snek, int input);
 
 int main(int argc, char **argv){
 	int i, j, kb = '0', width = 20, height = 20;
@@ -55,32 +43,21 @@ int main(int argc, char **argv){
 	initBoard(&board, width, height, '.');
 	initBoard(&underBoard, width, height, '$');
 	initSnek(board, underBoard, snekHead, width, height);
-	
+
 	do{
 		printBoard(board, height);
 		if(kbhit())
 			changeSnekDirection(snekHead, kb = getch());
-		if(moveSnek(board, underBoard, snekHead, width, height)){
-			/*putch(snekHead->dir);
-			putch(snekHead->length);
-			putch('\n');
-			printBoard(underBoard, height);
-			exit(0);*/
-			ggnore(board, width, height);
-			system("cls");
-			printBoard(board, height);
-			//printf("\n%d,%d\n", snekHead->x, snekHead->y);
+		if(moveSnek(board, underBoard, snekHead, width, height))
 			break;
-		}
 		placeFood(board, width, height);
-
-		/*putch(snekHead->dir);
-		putch(snekHead->length);
-		putch('\n');
-		printBoard(underBoard, height);*/
-		SLEEP(50);
+		Sleep(REFRESHRATE);
 		system("cls");
 	} while(kb != ESC);
+
+	ggnore(board, width, height);
+	system("cls");
+	printBoard(board, height);
 }
 
 void setxy(int argc, char **argv, int *x, int *y){
@@ -90,28 +67,30 @@ void setxy(int argc, char **argv, int *x, int *y){
 		*x = atoi(*(argv+1));
 		*y = atoi(*(argv+2));
 	}
-	
-	if(*x <= 0 || *x > MAXSCREENWIDTH)
+
+	if(*x < 2 || *x > MAXSCREENWIDTH)
 		*x = DEFAULTSCREENWIDTH;
 
-	if(*y <= 0 || *y > MAXSCREENHEIGHT)
+	if(*y < 2 || *y > MAXSCREENHEIGHT)
 		*y = DEFAULTSCREENHEIGHT;
 }
 
 void initBoard(char ***board, int x, int y, char set){
-	*board = (char **) malloc((y+2) * sizeof(char *));
-	
+	*board = (char **) malloc((y+3) * sizeof(char *));
+
 	int i, j;
-	for(j = 0; j < y+2; j++){
-		(*board)[j] = (char *) malloc((x+1) * sizeof(char));
+	for(j = 0; j < y+3; j++){
+		(*board)[j] = (char *) malloc((x+3) * sizeof(char));
 		for(i = 0; i < x+1; i++)
 			(*board)[j][i] = set;
-		(*board)[j][x] = '\0';
+		(*board)[j][x+1] = '\0';
+		(*board)[j][x+2] = '\0';
 	}
 }
 
 void printBoard(char **board, int y){
 	int j;
+	board++;
 	for(j = 0; j < y; j++){
 		_cputs(board++[1]);
 		putch('\n');
@@ -123,7 +102,7 @@ int numGen(int num){
 		return num ? -1 : 0;
 
 	int random, limit = (RAND_MAX/num)*num;
-	
+
 	if(limit == 0)
 		return 0;
 
@@ -138,15 +117,14 @@ void placeFood(char **board, int x, int y){
 		for(i = 1; i < x; i++)
 			if(board[j][i] == 'o')
 				return;
-	
+
 	while(board[(j = numGen(y-1))+1][(i = numGen(x-1))+1] == '#')
 		;
-	
+
 	board[j+1][i+1] = 'o';
 }
 
 void ggnore(char **board, int x, int y){
-	//exit(0);
 	if(x > 8){
 		int i;
 		char *text = "GAME OVER";
@@ -162,7 +140,7 @@ void initSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 	snek->y = y>>1;
 	snek->length = '1';
 	snek->dir = 'U';
-	
+
 	board[snek->y][snek->x] = '#';
 	underBoard[snek->y][snek->x] = snek->length;
 }
@@ -179,11 +157,11 @@ void growSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 void shrinkSnek
 (char **board, char **underBoard, struct Snek *snek, int x, int y){
 	int i, j;
-	for(j = 0; j < y+1; j++)
+	for(j = 0; j < y+2; j++)
 		for(i = 0; i < x+1; i++){
 			if(underBoard[j][i] > '0')
 				underBoard[j][i]--;
-			
+
 			if(board[j][i] == '#' && underBoard[j][i] < '1')
 				board[j][i] = '.';
 		}
@@ -194,10 +172,8 @@ int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 		board[snek->y][snek->x-1] == '#' && snek->dir == 'L' ||
 		board[snek->y+1][snek->x] == '#' && snek->dir == 'D' ||
 		board[snek->y][snek->x+1] == '#' && snek->dir == 'R'
-	){
-		puts("Bite");
+	)
 		return -1;
-	}
 
 	shrinkSnek(board, underBoard, snek, x, y);
 
@@ -207,41 +183,33 @@ int moveSnek(char **board, char **underBoard, struct Snek *snek, int x, int y){
 		board[snek->y][(snek->x)+1] == 'o' && snek->dir == 'R'
 	)
 		growSnek(board, underBoard, snek, x, y);
-	
+
 	switch(snek->dir){
 		case 'U':
 			board[--(snek->y)][snek->x] = '#';
 			break;
-		
+
 		case 'D':
 			board[++(snek->y)][snek->x] = '#';
 			break;
-		
+
 		case 'L':
 			board[snek->y][--(snek->x)] = '#';
 			break;
-		
+
 		case 'R':
 			board[snek->y][++(snek->x)] = '#';
 			break;
 	}
-	
-	underBoard[snek->y][snek->x] = snek->length;
-	
-	/*if(	board[LIM((snek->y)-1, 0)][snek->x] == '#' && snek->dir == 'U' ||
-		board[snek->y][LIM((snek->x)-1, 0)] == '#' && snek->dir == 'L' ||
-		board[LIM((snek->y)+1, y-1)][snek->x] == '#' && snek->dir == 'D' ||
-		board[snek->y][LIM((snek->x)+1, x)] == '#' && snek->dir == 'R'
-	)*/
 
-	if(	snek->y == 0 && snek->dir == 'U' ||
+	underBoard[snek->y][snek->x] = snek->length;
+
+	if(	snek->y == 1 && snek->dir == 'U' ||
 		snek->x == -1 && snek->dir == 'L' ||
-		snek->y == y+1 && snek->dir == 'D' ||
-		snek->x == x && snek->dir == 'R'
-	){
-		puts("Out of bounds.");
+		snek->y == y+2 && snek->dir == 'D' ||
+		snek->x == x+1 && snek->dir == 'R'
+	)
 		return -1;
-	}
 
 	return 0;
 }
@@ -262,13 +230,13 @@ void changeSnekDirection(struct Snek *snek, int c){
 			if(snek->dir == 'U' || snek->dir == 'D')
 				snek->dir = 'L';
 			break;
-		
+
 		case 'D': case 'd':
 			if(snek->dir == 'U' || snek->dir == 'D')
 				snek->dir = 'R';
 			break;
 	}
-	
+
 	if(c==224)
 		switch(c=getch()){
 			case UP:
@@ -285,7 +253,7 @@ void changeSnekDirection(struct Snek *snek, int c){
 				if(snek->dir == 'U' || snek->dir == 'D')
 					snek->dir = 'L';
 				break;
-			
+
 			case RIGHT:
 				if(snek->dir == 'U' || snek->dir == 'D')
 					snek->dir = 'R';
